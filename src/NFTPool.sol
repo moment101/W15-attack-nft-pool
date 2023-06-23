@@ -80,7 +80,7 @@ contract Contest {
     }
 
     function solve() public view returns (bool) {
-        require(nftPool.balances(msg.sender) > 1000, "You should be rich");
+        require(nftPool.balances(msg.sender) > 100, "You should be rich");
         return true;
     }
 }
