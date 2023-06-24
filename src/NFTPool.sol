@@ -28,7 +28,7 @@ contract NftPool is ERC20, IERC721Receiver {
     mapping(address => uint256) public balances;
 
     // owner's address => nft id => bool
-    mapping(address => mapping(uint256 => bool)) private lockedAsset;
+    mapping(address => mapping(uint256 => bool)) private enteredNFT;
 
     ERC721Enumerable public nft;
 
@@ -46,20 +46,23 @@ contract NftPool is ERC20, IERC721Receiver {
         uint256,
         bytes memory
     ) external returns (bytes4) {
-        // console.log('onERC721Received');
         return this.onERC721Received.selector;
     }
 
-    function leave(uint256 id) external {
-        require(lockedAsset[msg.sender][id], "Only owner can leave the pool");
-        nft.safeTransferFrom(address(this), msg.sender, id);
-        delete lockedAsset[msg.sender][id];
-        balances[msg.sender] -= 1;
+    function enter(uint256 id) external {
+        require(
+            nft.ownerOf(id) == msg.sender,
+            "Only owner can deposit their NFT"
+        );
+        require(!enteredNFT[msg.sender][id], "You can only enter once");
+        nft.safeTransferFrom(msg.sender, address(this), id);
+        enteredNFT[msg.sender][id] = true;
     }
 
-    function enter(uint256 id) external {
-        nft.safeTransferFrom(msg.sender, address(this), id);
-        lockedAsset[msg.sender][id] = true;
+    function leave(uint256 id) external {
+        require(enteredNFT[msg.sender][id], "NFT should enter the pool.");
+        require(nft.ownerOf(id) == address(this), "No NFT to be transfered");
+        nft.safeTransferFrom(address(this), msg.sender, id);
         balances[msg.sender] += 1;
     }
 }
@@ -80,7 +83,7 @@ contract Contest {
     }
 
     function solve() public view returns (bool) {
-        require(nftPool.balances(msg.sender) > 1000, "You should be rich");
+        require(nftPool.balances(msg.sender) > 100, "You should be rich");
         return true;
     }
 }
